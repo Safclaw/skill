@@ -25,21 +25,27 @@ jobs:
                     - os: ubuntu-latest
                       arch: amd64
                       artifact_name: skill_linux_amd64
+                      output_name: skill
                     - os: ubuntu-latest
                       arch: arm64
                       artifact_name: skill_linux_arm64
+                      output_name: skill
                     - os: macos-latest
                       arch: amd64
                       artifact_name: skill_darwin_amd64
+                      output_name: skill
                     - os: macos-latest
                       arch: arm64
                       artifact_name: skill_darwin_arm64
+                      output_name: skill
                     - os: windows-latest
                       arch: amd64
                       artifact_name: skill_windows_amd64.exe
+                      output_name: skill.exe
                     - os: windows-latest
                       arch: arm64
                       artifact_name: skill_windows_arm64.exe
+                      output_name: skill.exe
 
         steps:
             - name: Checkout code
@@ -68,11 +74,25 @@ jobs:
                   VERSION="${{ steps.version.outputs.version }}"
                   COMMIT="$(git rev-parse --short HEAD)"
                   DATE="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-                  go build -ldflags="-s -w \
-                    -X main.version=${VERSION} \
-                    -X main.commit=${COMMIT} \
-                    -X main.date=${DATE}" \
-                    -o ${{ matrix.artifact_name }} ./cmd/skill
+                  IMPORTCFG="./importcfg"
+                  TMPDIR="/tmp"
+                  if [ -f "$IMPORTCFG" ]; then
+                    go build -ldflags="-s -w \
+                      -X main.version=${VERSION} \
+                      -X main.commit=${COMMIT} \
+                      -X main.date=${DATE}" \
+                      -importcfg="$IMPORTCFG" \
+                      -tmpdir="$TMPDIR" \
+                      -o ${{ matrix.output_name }} ./cmd/skill
+                  else
+                    go build -ldflags="-s -w \
+                      -X main.version=${VERSION} \
+                      -X main.commit=${COMMIT} \
+                      -X main.date=${DATE}" \
+                      -o ${{ matrix.output_name }} ./cmd/skill
+                  fi
+                  # Rename binary to match artifact name
+                  mv ${{ matrix.output_name }} ${{ matrix.artifact_name }}
               shell: bash
 
             - name: Upload artifact
