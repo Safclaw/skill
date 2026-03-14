@@ -33,3 +33,4 @@ go.work.sum
 ctl/bin/*
 test/**
 skill
+skill_*
