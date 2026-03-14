@@ -65,7 +65,13 @@ jobs:
 
       - name: Build binary
         run: |
-          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \
+          VERSION="${{ steps.version.outputs.version }}"
+          COMMIT="$(git rev-parse --short HEAD)"
+          DATE="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          go build -ldflags="-s -w \
+            -X main.version=${VERSION} \
+            -X main.commit=${COMMIT} \
+            -X main.date=${DATE}" \
             -o ${{ matrix.artifact_name }} ./cmd/skill
         shell: bash
 
