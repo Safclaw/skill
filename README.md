@@ -1,6 +1,57 @@
 # skill
 
 A Go Module-inspired decentralized skill management tool for SafeClaw.
+## Install
+
+### Quick Install (Recommended)
+
+**Mac & Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Safclaw/skill/main/scripts/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Safclaw/skill/main/scripts/install.ps1 | Invoke-Expression
+```
+
+### Manual Installation
+
+#### Mac
+```bash
+# Option 1: Using Homebrew (if available)
+brew install skill
+
+# Option 2: Manual download
+curl -LO https://github.com/Safclaw/skill/releases/latest/download/skill_darwin_amd64
+chmod +x skill_darwin_amd64
+sudo mv skill_darwin_amd64 /usr/local/bin/skill
+skill --version
+```
+
+#### Linux
+```bash
+# Download binary
+curl -LO https://github.com/Safclaw/skill/releases/latest/download/skill_linux_amd64
+chmod +x skill_linux_amd64
+sudo mv skill_linux_amd64 /usr/local/bin/skill
+skill --version
+```
+
+#### Windows
+```powershell
+# Download using PowerShell
+Invoke-WebRequest -Uri "https://github.com/Safclaw/skill/releases/latest/download/skill_windows_amd64.exe" -OutFile "$env:USERPROFILE\skill.exe"
+# Add to PATH manually or move to existing PATH directory
+```
+
+### Build from Source
+```bash
+git clone https://github.com/Safclaw/skill.git
+cd skill
+go build -o skill ./cmd/skill
+sudo mv skill /usr/local/bin/
+```
 
 ## Features
 

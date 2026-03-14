@@ -78,7 +78,7 @@ func (tm *TemplateManager) copyRemoteTemplate(ctx context.Context, templatePath,
 			// github.com/Safclaw/skill/empty
 			subDirPath = pathParts[3]
 		}
-		
+
 		// 重新解析为实际的仓库路径
 		actualRepoPath := strings.Join(pathParts[:3], "/") // github.com/Safclaw/skill
 		if idx := strings.LastIndex(versionPart(templatePath), "@"); idx != -1 {
