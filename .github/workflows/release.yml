@@ -76,20 +76,11 @@ jobs:
                   DATE="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
                   IMPORTCFG="./importcfg"
                   TMPDIR="/tmp"
+                  LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}"
                   if [ -f "$IMPORTCFG" ]; then
-                    go build -ldflags="-s -w \
-                      -X main.version=${VERSION} \
-                      -X main.commit=${COMMIT} \
-                      -X main.date=${DATE}" \
-                      -importcfg="$IMPORTCFG" \
-                      -tmpdir="$TMPDIR" \
-                      -o ${{ matrix.output_name }} ./cmd/skill
+                    go build -ldflags="$LDFLAGS" -importcfg="$IMPORTCFG" -tmpdir="$TMPDIR" -o ${{ matrix.output_name }} ./cmd/skill
                   else
-                    go build -ldflags="-s -w \
-                      -X main.version=${VERSION} \
-                      -X main.commit=${COMMIT} \
-                      -X main.date=${DATE}" \
-                      -o ${{ matrix.output_name }} ./cmd/skill
+                    go build -ldflags="$LDFLAGS" -o ${{ matrix.output_name }} ./cmd/skill
                   fi
                   # Rename binary to match artifact name
                   mv ${{ matrix.output_name }} ${{ matrix.artifact_name }}
