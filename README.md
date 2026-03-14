@@ -68,14 +68,6 @@ Invoke-WebRequest -Uri "https://github.com/safeclaw/skill/releases/latest/downlo
 
 </details>
 
-### Build from Source
-```bash
-git clone https://github.com/safeclaw/skill.git
-cd skill
-go build -o skill ./cmd/skill
-sudo mv skill /usr/local/bin/
-```
-
 ## Features
 
 - **Decentralized Management**: Download skills from any Git repository (GitHub, GitLab, Gitee, etc.)
