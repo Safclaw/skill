@@ -118,8 +118,27 @@ install_skill() {
         exit 1
     fi
     
-    # Make executable
+    # Check if downloaded file is valid (not an HTML error page)
+    if [ -f "${tmp_dir}/${SKILL_BIN}" ]; then
+        # Check first few bytes for ELF or Mach-O magic numbers
+        local first_bytes=$(head -c 4 "${tmp_dir}/${SKILL_BIN}" 2>/dev/null || echo "")
+        if [[ "$first_bytes" != $'\x7fELF' ]] && [[ "$first_bytes" != $'\xcf\xfa\xed\xfe' ]] && [[ "$first_bytes" != $'\xfe\xed\xfa\xcf' ]]; then
+            # Check if it's a text file (likely an error message)
+            if file "${tmp_dir}/${SKILL_BIN}" | grep -q "text\|HTML"; then
+                log_error "Downloaded file is not a valid binary. The release may not exist."
+                log_error "Please check: ${download_url}"
+                exit 1
+            fi
+        fi
+    fi
+    
+    # Make executable and verify it's a valid binary
     chmod +x "${tmp_dir}/${SKILL_BIN}"
+    
+    # Verify the binary is executable
+    if ! "${tmp_dir}/${SKILL_BIN}" --version &>/dev/null; then
+        log_warn "Binary verification failed, but continuing with installation..."
+    fi
     
     # Create target directory if needed
     if [ ! -d "$target_dir" ]; then
