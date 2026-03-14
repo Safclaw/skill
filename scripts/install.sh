@@ -11,7 +11,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="safeclaw/skill"
+REPO="Safclaw/skill"
 INSTALL_DIR="/usr/local/bin"
 SKILL_BIN="skill"
 USER_INSTALL_DIR="$HOME/.local/bin"
@@ -98,26 +98,26 @@ install_skill() {
     local arch="$2"
     local version="$3"
     local target_dir="$4"
-    
+
     local binary_name="skill_${os}_${arch}"
     local download_url="https://github.com/${REPO}/releases/latest/download/${binary_name}"
-    
+
     if [ "$os" = "windows" ]; then
         binary_name="${binary_name}.exe"
     fi
-    
+
     log_info "Downloading ${SKILL_BIN} ${version:-latest} for ${os}/${arch}..."
-    
+
     # Create temporary directory
     local tmp_dir=$(mktemp -d)
     trap "rm -rf ${tmp_dir}" EXIT
-    
+
     # Download binary
     if ! curl -sL -o "${tmp_dir}/${SKILL_BIN}" "${download_url}"; then
         log_error "Failed to download from ${download_url}"
         exit 1
     fi
-    
+
     # Check if downloaded file is valid (not an HTML error page)
     if [ -f "${tmp_dir}/${SKILL_BIN}" ]; then
         # Check first few bytes for ELF or Mach-O magic numbers
@@ -131,20 +131,20 @@ install_skill() {
             fi
         fi
     fi
-    
+
     # Make executable and verify it's a valid binary
     chmod +x "${tmp_dir}/${SKILL_BIN}"
-    
+
     # Verify the binary is executable
     if ! "${tmp_dir}/${SKILL_BIN}" --version &>/dev/null; then
         log_warn "Binary verification failed, but continuing with installation..."
     fi
-    
+
     # Create target directory if needed
     if [ ! -d "$target_dir" ]; then
         mkdir -p "$target_dir"
     fi
-    
+
     # Install to target directory
     if ! mv "${tmp_dir}/${SKILL_BIN}" "${target_dir}/${SKILL_BIN}"; then
         # If failed and trying system dir, try with sudo
@@ -158,7 +158,7 @@ install_skill() {
         log_error "Failed to install to ${target_dir}"
         exit 1
     fi
-    
+
     log_info "Successfully installed ${SKILL_BIN} to ${target_dir}"
 }
 
@@ -194,14 +194,14 @@ main() {
     echo "🚀 Skill Installer"
     echo "=================="
     echo ""
-    
+
     check_prerequisites
-    
+
     local os=$(detect_os)
     local arch=$(detect_arch)
-    
+
     log_info "Detected: ${os}/${arch}"
-    
+
     # Determine install directory
     local install_dir=$(choose_install_dir)
     if [ "$install_dir" = "$USER_INSTALL_DIR" ]; then
@@ -209,10 +209,10 @@ main() {
     else
         log_info "Installing to system directory: ${install_dir}"
     fi
-    
+
     install_skill "${os}" "${arch}" "${VERSION:-}" "${install_dir}"
     verify_installation
-    
+
     log_info "Installation complete!"
 }
 
