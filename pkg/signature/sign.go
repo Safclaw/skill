@@ -15,7 +15,9 @@ func ComputeFile(filePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
@@ -40,7 +42,7 @@ func ComputeDirectory(dirPath string) (string, error) {
 		}
 
 		// 写入文件信息（用于保证文件列表的一致性）
-		fmt.Fprintf(hash, "%s %d %d\n", info.Name(), info.Size(), info.ModTime().Unix())
+		_, _ = fmt.Fprintf(hash, "%s %d %d\n", info.Name(), info.Size(), info.ModTime().Unix())
 
 		// 如果是文件，读取内容
 		if !info.IsDir() {
@@ -48,7 +50,9 @@ func ComputeDirectory(dirPath string) (string, error) {
 			if err != nil {
 				return err
 			}
-			defer file.Close()
+			defer func() {
+				_ = file.Close()
+			}()
 
 			if _, err := io.Copy(hash, file); err != nil {
 				return err

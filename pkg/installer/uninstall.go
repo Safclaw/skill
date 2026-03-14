@@ -58,7 +58,7 @@ func (u *Uninstaller) Uninstall(opts UninstallOptions) (*UninstallResult, error)
 	}
 
 	// 4. 清理空的父目录
-	cleanupEmptyDirs(filepath.Join(opts.InstallDir, "reps"))
+	_ = cleanupEmptyDirs(filepath.Join(opts.InstallDir, "reps"))
 
 	// 5. 更新清单文件
 	manifestPath := filepath.Join(opts.InstallDir, ".skills.yaml")

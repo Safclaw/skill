@@ -56,7 +56,7 @@ func (i *Installer) Install(opts InstallOptions) (*InstallResult, error) {
 	if opts.RunHooks {
 		if err := i.executePostAddHooks(targetPath); err != nil {
 			// Hook 执行失败，回滚
-			os.RemoveAll(targetPath)
+			_ = os.RemoveAll(targetPath)
 			return nil, fmt.Errorf("post_add hooks failed: %w", err)
 		}
 	}
@@ -65,7 +65,7 @@ func (i *Installer) Install(opts InstallOptions) (*InstallResult, error) {
 	manifestPath := filepath.Join(opts.InstallDir, ".skills.yaml")
 	if err := i.updateManifest(manifestPath, opts); err != nil {
 		// 清单更新失败，回滚
-		os.RemoveAll(targetPath)
+		_ = os.RemoveAll(targetPath)
 		return nil, fmt.Errorf("failed to update manifest: %w", err)
 	}
 

@@ -55,7 +55,9 @@ func (d *GitHubDownloader) Download(ctx context.Context, host, namespace, name, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to download: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("download failed with status: %d", resp.StatusCode)
@@ -66,7 +68,9 @@ func (d *GitHubDownloader) Download(ctx context.Context, host, namespace, name, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
-	defer tmpFile.Close()
+	defer func() {
+		_ = tmpFile.Close()
+	}()
 
 	// 计算 SHA256 并保存文件
 	hash := sha256.New()
@@ -74,7 +78,7 @@ func (d *GitHubDownloader) Download(ctx context.Context, host, namespace, name, 
 
 	size, err := io.Copy(writer, resp.Body)
 	if err != nil {
-		os.Remove(tmpFile.Name())
+		_ = os.Remove(tmpFile.Name())
 		return nil, fmt.Errorf("failed to save file: %w", err)
 	}
 
@@ -103,7 +107,9 @@ func (d *GitHubDownloader) resolveLatestVersion(ctx context.Context, namespace, 
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode == http.StatusOK {
 		// 成功获取到 release，解析 JSON
@@ -151,7 +157,9 @@ func (d *GitHubDownloader) ListVersions(ctx context.Context, host, namespace, na
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to list versions: %d", resp.StatusCode)
@@ -179,7 +187,9 @@ func ExtractZip(zipPath, destDir string) error {
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer func() {
+		_ = r.Close()
+	}()
 
 	for _, f := range r.File {
 		// 跳过目录
@@ -209,13 +219,17 @@ func extractFile(f *zip.File, targetPath string) error {
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer func() {
+		_ = rc.Close()
+	}()
 
 	outFile, err := os.Create(targetPath)
 	if err != nil {
 		return err
 	}
-	defer outFile.Close()
+	defer func() {
+		_ = outFile.Close()
+	}()
 
 	_, err = io.Copy(outFile, rc)
 	return err

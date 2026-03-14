@@ -79,7 +79,9 @@ func (m *Manager) Put(host, namespace, name, version string, zipPath string, che
 	if err != nil {
 		return "", err
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	// 解压 zip 文件
 	if err := extractZip(zipPath, tmpDir); err != nil {
@@ -177,7 +179,7 @@ func (m *Manager) computeChecksum(dirPath string) (string, error) {
 		}
 
 		// 写入文件信息
-		fmt.Fprintf(hash, "%s %d\n", info.Name(), info.Size())
+		_, _ = fmt.Fprintf(hash, "%s %d\n", info.Name(), info.Size())
 
 		// 如果是文件，读取内容
 		if !info.IsDir() {
@@ -185,7 +187,9 @@ func (m *Manager) computeChecksum(dirPath string) (string, error) {
 			if err != nil {
 				return err
 			}
-			defer file.Close()
+			defer func() {
+				_ = file.Close()
+			}()
 
 			if _, err := io.Copy(hash, file); err != nil {
 				return err
@@ -208,7 +212,9 @@ func extractZip(zipPath, destDir string) error {
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer func() {
+		_ = r.Close()
+	}()
 
 	for _, f := range r.File {
 		if f.FileInfo().IsDir() {
@@ -234,13 +240,17 @@ func extractFile(f *zip.File, targetPath string) error {
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer func() {
+		_ = rc.Close()
+	}()
 
 	outFile, err := os.Create(targetPath)
 	if err != nil {
 		return err
 	}
-	defer outFile.Close()
+	defer func() {
+		_ = outFile.Close()
+	}()
 
 	_, err = io.Copy(outFile, rc)
 	return err

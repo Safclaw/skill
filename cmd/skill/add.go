@@ -88,7 +88,9 @@ func runAdd(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("download failed: %w", err)
 		}
-		defer os.Remove(downloadResult.Path) // 清理临时 zip 文件
+		defer func() {
+			_ = os.Remove(downloadResult.Path) // 清理临时 zip 文件
+		}()
 
 		// 保存到缓存
 		skillPath, err = cacheManager.Put(modPath.Host, modPath.Namespace, modPath.Name, modPath.Version, downloadResult.Path, downloadResult.Checksum)

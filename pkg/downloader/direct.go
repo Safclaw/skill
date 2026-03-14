@@ -28,7 +28,7 @@ func (d *DirectDownloader) Download(ctx context.Context, host, namespace, name, 
 		return nil, fmt.Errorf("GitLab download not implemented yet")
 	case "gitee.com":
 		// TODO: 实现 Gitee 下载器
-		return nil, fmt.Errorf("Gitee download not implemented yet")
+		return nil, fmt.Errorf("gitee download not implemented yet")
 	default:
 		return nil, fmt.Errorf("unsupported host: %s", host)
 	}

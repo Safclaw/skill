@@ -46,7 +46,9 @@ func (v *ChecksumVerifier) computeFileChecksum(filePath string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {

@@ -127,14 +127,18 @@ func (tm *TemplateManager) copyRemoteTemplate(ctx context.Context, templatePath,
 	if err != nil {
 		return fmt.Errorf("failed to download template: %w", err)
 	}
-	defer os.Remove(result.Path)
+	defer func() {
+		_ = os.Remove(result.Path)
+	}()
 
 	// 创建临时目录解压
 	tmpDir, err := os.MkdirTemp("", "skill-template-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	// 解压 zip 文件
 	if err := downloader.ExtractZip(result.Path, tmpDir); err != nil {
@@ -248,8 +252,8 @@ func validateTemplate(dirPath string) error {
 	// 可以包含 skill.md（可选）
 	skillMdPath := filepath.Join(dirPath, "skill.md")
 	if _, err := os.Stat(skillMdPath); os.IsNotExist(err) {
-		// skill.md 不存在时，检查是否有其他入口文件
-		// 这里暂时不强制要求
+		// skill.md is optional, intentionally skip validation
+		_ = struct{}{} // intentional no-op
 	}
 
 	// 验证 skill.yaml 格式

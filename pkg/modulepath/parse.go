@@ -200,11 +200,7 @@ func isValidVersion(version string) bool {
 	// 支持分支名
 	branchPattern := `^[a-zA-Z][a-zA-Z0-9\-_./]+$`
 	matched, _ = regexp.MatchString(branchPattern, version)
-	if matched {
-		return true
-	}
-
-	return false
+	return matched
 }
 
 // IsAbsolute 判断是否是绝对路径

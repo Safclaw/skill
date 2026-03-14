@@ -115,9 +115,9 @@ func (e *Executor) executeScript(script *HookScript, skillPath string) ExecuteRe
 	if err != nil {
 		// 检查是否是超时错误
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			if exitErr.ProcessState != nil && exitErr.ProcessState.Exited() {
+			if exitErr.ProcessState != nil && exitErr.Exited() {
 				result.Error = fmt.Errorf("script exited with code %d: %s",
-					exitErr.ProcessState.ExitCode(), result.Output)
+					exitErr.ExitCode(), result.Output)
 			}
 		}
 	}
