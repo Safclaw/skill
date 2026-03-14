@@ -5,7 +5,7 @@
 `skill init` 命令已增强，支持从模板创建 skill 项目。主要特性：
 
 1. **在当前目录初始化** - 不再创建子目录，而是在当前工作目录生成文件
-2. **默认使用 empty 模板** - 自动查找并使用 `empty` 目录作为默认模板
+2. **默认使用 empty 模板** - empty 模板已编译到可执行程序中，无需外部依赖
 3. **支持自定义模板** - 通过 `--template` 参数指定本地或远程模板
 4. **模板验证** - 自动检查模板是否符合 skill 规范（必须包含 skill.yaml）
 5. **自动更新模块名** - 将模板中的 name 字段替换为命令行指定的模块名
@@ -19,7 +19,7 @@ cd /path/to/new-skill
 skill init github.com/myorg/my-skill
 ```
 
-这会在当前目录创建 skill 项目，使用默认的 `empty` 模板。
+这会在当前目录创建 skill 项目，使用默认的空模板（已嵌入到可执行程序中）。
 
 ### 2. 使用本地模板
 
@@ -78,10 +78,15 @@ my-template/
 1. **TemplateManager** (`pkg/template/manager.go`)
    - 模板下载和管理
    - 本地/远程模板识别
+   - 嵌入模板支持（使用 Go embed）
    - 模板验证
    - 文件复制和模块名更新
 
-2. **init.go** (`cmd/skill/init.go`)
+2. **Templates Package** (`pkg/templates/embed.go`)
+   - 使用 `//go:embed` 指令将 empty 模板编译到二进制文件中
+   - 提供嵌入文件系统访问接口
+
+3. **init.go** (`cmd/skill/init.go`)
    - 简化的初始化逻辑
    - 调用 TemplateManager 复制模板
    - 用户交互和提示
@@ -89,9 +94,9 @@ my-template/
 ### 工作流程
 
 1. 解析命令行参数
-2. 确定模板路径（默认或 `--template` 指定）
-3. 判断模板类型（本地或远程）
-4. 下载/复制模板文件到当前目录
+2. 确定模板路径（默认使用嵌入的 empty 模板，或 `--template` 指定）
+3. 判断模板类型（嵌入、本地或远程）
+4. 从嵌入文件系统/本地/网络下载模板文件到当前目录
 5. 验证模板有效性
 6. 更新 `skill.yaml` 中的 `name` 字段
 7. 输出成功消息和后续步骤提示

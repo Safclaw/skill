@@ -3,12 +3,14 @@ package template
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/Safclaw/skill/pkg/downloader"
 	"github.com/Safclaw/skill/pkg/modulepath"
+	"github.com/Safclaw/skill/pkg/templates"
 )
 
 // TemplateManager 模板管理器
@@ -25,6 +27,11 @@ func NewTemplateManager(cacheDir string) *TemplateManager {
 
 // CopyTemplate 从模板创建 skill
 func (tm *TemplateManager) CopyTemplate(ctx context.Context, templatePath, destDir, moduleName string) error {
+	// 检查是否是嵌入的模板
+	if isEmbeddedTemplate(templatePath) {
+		return tm.copyEmbeddedTemplate(templatePath, destDir, moduleName)
+	}
+
 	// 判断是本地路径还是远程仓库
 	if isLocalPath(templatePath) {
 		return tm.copyLocalTemplate(templatePath, destDir, moduleName)
@@ -32,6 +39,30 @@ func (tm *TemplateManager) CopyTemplate(ctx context.Context, templatePath, destD
 
 	// 远程仓库模板
 	return tm.copyRemoteTemplate(ctx, templatePath, destDir, moduleName)
+}
+
+// copyEmbeddedTemplate 复制嵌入的模板
+func (tm *TemplateManager) copyEmbeddedTemplate(templatePath, destDir, moduleName string) error {
+	// 提取模板名称（如：embed:empty -> empty）
+	templateName := strings.TrimPrefix(templatePath, "embed:")
+	templateRoot := templateName // Don't join with "empty" prefix
+
+	// 验证嵌入的模板
+	if err := validateEmbeddedTemplate(templateRoot); err != nil {
+		return fmt.Errorf("invalid embedded template: %w", err)
+	}
+
+	// 复制嵌入的文件到目标目录
+	if err := copyEmbeddedDirectory(templateRoot, destDir); err != nil {
+		return fmt.Errorf("failed to copy embedded template: %w", err)
+	}
+
+	// 更新 skill.yaml 中的 name 字段
+	if err := updateModuleName(destDir, moduleName); err != nil {
+		return fmt.Errorf("failed to update module name: %w", err)
+	}
+
+	return nil
 }
 
 // copyLocalTemplate 复制本地模板
@@ -153,6 +184,11 @@ func versionPart(path string) string {
 	return "latest"
 }
 
+// isEmbeddedTemplate 判断是否是嵌入的模板
+func isEmbeddedTemplate(path string) bool {
+	return strings.HasPrefix(path, "embed:")
+}
+
 // isLocalPath 判断是否是本地路径
 func isLocalPath(path string) bool {
 	// 绝对路径或相对路径
@@ -179,6 +215,26 @@ func isLocalPath(path string) bool {
 
 	// 默认认为是本地路径
 	return true
+}
+
+// validateEmbeddedTemplate 验证嵌入的目录是否是有效的 skill 模板
+func validateEmbeddedTemplate(templateRoot string) error {
+	// 获取嵌入的文件系统
+	tmplFS := templates.GetEmptyTemplateFS()
+
+	// 检查 skill.yaml 是否存在
+	skillYamlPath := filepath.Join(templateRoot, "skill.yaml")
+	data, err := tmplFS.ReadFile(skillYamlPath)
+	if err != nil {
+		return fmt.Errorf("missing skill.yaml: %w", err)
+	}
+
+	content := string(data)
+	if !strings.Contains(content, "name:") {
+		return fmt.Errorf("skill.yaml must contain 'name' field")
+	}
+
+	return nil
 }
 
 // validateTemplate 验证目录是否是有效的 skill 模板
@@ -208,6 +264,51 @@ func validateTemplate(dirPath string) error {
 	}
 
 	return nil
+}
+
+// copyEmbeddedDirectory 复制嵌入的目录到目标位置
+func copyEmbeddedDirectory(srcRoot, dst string) error {
+	tmplFS := templates.GetEmptyTemplateFS()
+
+	err := fs.WalkDir(tmplFS, srcRoot, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// 计算相对路径
+		relPath, err := filepath.Rel(srcRoot, path)
+		if err != nil {
+			return err
+		}
+		if relPath == "." {
+			return nil
+		}
+
+		// 跳过 .git 目录
+		if d.IsDir() && d.Name() == ".git" {
+			return fs.SkipDir
+		}
+
+		dstPath := filepath.Join(dst, relPath)
+
+		if d.IsDir() {
+			if err := os.MkdirAll(dstPath, 0755); err != nil {
+				return err
+			}
+		} else {
+			data, err := tmplFS.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			if err := os.WriteFile(dstPath, data, 0644); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 // copyDirectory 复制目录
@@ -276,35 +377,7 @@ func updateModuleName(dirPath, moduleName string) error {
 }
 
 // GetDefaultTemplate 获取默认模板路径
+// 返回嵌入的文件系统路径标识符
 func GetDefaultTemplate() string {
-	// 尝试多个可能的路径
-	possiblePaths := []string{
-		"./empty",
-		"../empty",
-		"../../empty",
-	}
-
-	for _, path := range possiblePaths {
-		if _, err := os.Stat(path); err == nil {
-			return path
-		}
-	}
-
-	// 获取可执行文件所在目录
-	execPath, err := os.Executable()
-	if err != nil {
-		// 回退到当前目录
-		return "./empty"
-	}
-
-	execDir := filepath.Dir(execPath)
-	templatePath := filepath.Join(execDir, "empty")
-
-	// 检查是否存在
-	if _, err := os.Stat(templatePath); err == nil {
-		return templatePath
-	}
-
-	// 最终回退
-	return "./empty"
+	return "embed:empty"
 }
