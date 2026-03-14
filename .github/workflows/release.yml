@@ -1,143 +1,136 @@
 name: Build and Release
 
 on:
-    push:
-        tags:
-            - "v*" # Trigger on version tags like v1.0.0
-    workflow_dispatch:
-        inputs:
-            version:
-                description: "Version to build (e.g., v1.0.0)"
-                required: true
-                type: string
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (e.g., v1.0.0)"
+        required: true
+        type: string
 
 permissions:
-    contents: write
-    packages: write
+  contents: write
+  packages: write
 
 jobs:
-    build:
-        name: Build ${{ matrix.os }}/${{ matrix.arch }}
-        runs-on: ${{ matrix.os }}
-        strategy:
-            matrix:
-                include:
-                    - os: ubuntu-latest
-                      arch: amd64
-                      artifact_name: skill_linux_amd64
-                      output_name: skill
-                    - os: ubuntu-latest
-                      arch: arm64
-                      artifact_name: skill_linux_arm64
-                      output_name: skill
-                    - os: macos-latest
-                      arch: amd64
-                      artifact_name: skill_darwin_amd64
-                      output_name: skill
-                    - os: macos-latest
-                      arch: arm64
-                      artifact_name: skill_darwin_arm64
-                      output_name: skill
-                    - os: windows-latest
-                      arch: amd64
-                      artifact_name: skill_windows_amd64.exe
-                      output_name: skill.exe
-                    - os: windows-latest
-                      arch: arm64
-                      artifact_name: skill_windows_arm64.exe
-                      output_name: skill.exe
+  build:
+    name: Build ${{ matrix.os }}/${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+            artifact_name: skill_linux_amd64
+          - os: ubuntu-latest
+            arch: arm64
+            artifact_name: skill_linux_arm64
+          - os: macos-latest
+            arch: amd64
+            artifact_name: skill_darwin_amd64
+          - os: macos-latest
+            arch: arm64
+            artifact_name: skill_darwin_arm64
+          - os: windows-latest
+            arch: amd64
+            artifact_name: skill_windows_amd64.exe
+          - os: windows-latest
+            arch: arm64
+            artifact_name: skill_windows_arm64.exe
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-            - name: Set up Go
-              uses: actions/setup-go@v5
-              with:
-                  go-version: "1.26"
-                  cache: true
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
 
-            - name: Determine version
-              id: version
-              run: |
-                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                    echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
-                  else
-                    echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-                  fi
-              shell: bash
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
 
-            - name: Build binary
-              run: |
-                  VERSION="${{ steps.version.outputs.version }}"
-                  COMMIT="$(git rev-parse --short HEAD)"
-                  DATE="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-                  IMPORTCFG="./importcfg"
-                  TMPDIR="/tmp"
-                  LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}"
-                  if [ -f "$IMPORTCFG" ]; then
-                    go build -ldflags="$LDFLAGS" -importcfg="$IMPORTCFG" -tmpdir="$TMPDIR" -o ${{ matrix.output_name }} ./cmd/skill
-                  else
-                    go build -ldflags="$LDFLAGS" -o ${{ matrix.output_name }} ./cmd/skill
-                  fi
-                  # Rename binary to match artifact name
-                  mv ${{ matrix.output_name }} ${{ matrix.artifact_name }}
-              shell: bash
+      - name: Build binary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          COMMIT="$(git rev-parse --short HEAD)"
+          DATE="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          LDFLAGS="-s -w -X 'main.version=${VERSION}' -X 'main.commit=${COMMIT}' -X 'main.date=${DATE}'"
 
-            - name: Upload artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: ${{ matrix.artifact_name }}
-                  path: ${{ matrix.artifact_name }}
-                  retention-days: 30
+          # Check for importcfg file
+          if [ -f "./importcfg" ]; then
+            go build -ldflags="${LDFLAGS}" -importcfg="./importcfg" -tmpdir="/tmp" -o "${{ matrix.artifact_name }}" ./cmd/skill
+          else
+            go build -ldflags="${LDFLAGS}" -o "${{ matrix.artifact_name }}" ./cmd/skill
+          fi
+        shell: bash
 
-    release:
-        name: Create Release
-        needs: build
-        runs-on: ubuntu-latest
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+          retention-days: 30
 
-        steps:
-            - name: Download all artifacts
-              uses: actions/download-artifact@v4
-              with:
-                  pattern: skill_*
-                  merge-multiple: true
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
 
-            - name: Generate checksums
-              run: |
-                  sha256sum skill_* > checksums.txt
-                  cat checksums.txt
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: skill_*
+          merge-multiple: true
 
-            - name: Create or update release
-              uses: softprops/action-gh-release@v1
-              with:
-                  name: Release ${{ github.event.inputs.version || github.ref_name }}
-                  body: |
-                      ## Installation
+      - name: Generate checksums
+        run: |
+          sha256sum skill_* > checksums.txt
+          cat checksums.txt
 
-                      ### Mac/Linux (One-line install)
-                      ```bash
-                      curl -fsSL https://raw.githubusercontent.com/Safclaw/skill/main/scripts/install.sh | bash
-                      ```
+      - name: Create or update release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.event.inputs.version || github.ref_name }}
+          body: |
+            ## Installation
 
-                      ### Windows (PowerShell)
-                      ```powershell
-                      Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Safclaw/skill/main/scripts/install.ps1 | Invoke-Expression
-                      ```
+            ### Mac/Linux (One-line install)
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/Safclaw/skill/main/scripts/install.sh | bash
+            ```
 
-                      ### Manual installation
-                      Download the binary for your platform and add it to your PATH.
+            ### Windows (PowerShell)
+            ```powershell
+            Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Safclaw/skill/main/scripts/install.ps1 | Invoke-Expression
+            ```
 
-                      ## Checksums
-                      ```
-                      $(cat checksums.txt)
-                      ```
-                  files: |
-                      skill_*
-                      checksums.txt
-                  draft: false
-                  prerelease: ${{ contains(github.ref_name, '-rc') }}
-                  generate_release_notes: true
+            ### Manual installation
+            Download the binary for your platform and add it to your PATH.
+
+            ## Checksums
+            ```
+            $(cat checksums.txt)
+            ```
+          files: |
+            skill_*
+            checksums.txt
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          generate_release_notes: true
