@@ -1,0 +1,59 @@
+# ==============================
+# 第一层级：核心标识（必填）
+# ==============================
+name: github.com/commit-helper/commit-helper
+description: "帮助生成规范的 Git commit message，支持 Conventional Commits 标准" # 可以缺省
+entrypoint: "skill.md" # 可以缺省，默认为skill.md
+
+# ==============================
+# 第二层级：元数据（推荐）
+# ==============================
+authors:
+  - name: "Your Name"
+    email: "email@example.com"
+    homepage: "https://yourwebsite.com"
+license: "MIT"
+repository: "https://github.com/commit-helper/commit-helper"
+homepage: "https://commit-helper.dev"
+tags:
+  ["git", "productivity", "devops", "commit-message", "conventional-commits"]
+
+# ==============================
+# 第三层级：依赖（可选）
+# ==============================
+dependencies:
+  - name: github.com/Safclaw/skills/xlsx
+    version: v1.0.0
+
+# ==============================
+# 第四层级：权限（核心安全）
+# ==============================
+permissions:
+  # 存储权限
+  storage:
+    - label: "读取项目代码和 Git 状态" # 存储权限标签
+      reason: "分析源代码和 git diff 以生成准确的 commit message"
+      level: normal # normal | dangerous | critical
+      allow_persistent: false # 是否允许持久化，缺省为 false
+
+      paths: ["src", ".git"] # 相对路径 或者 绝对路径
+      rel: workspace # system | home | workspace
+      mod: ["read"] # read | write
+
+  # 网络权限（示例扩展）
+  network:
+    - label: "查询 GitHub Issues"
+      reason: "关联相关 Issue 到 commit message 中"
+      level: normal
+      allow_persistent: false # 是否允许持久化，缺省为 false
+
+      domains: ["api.github.com"]
+
+  # 执行权限（示例扩展）
+  execution:
+    - label: "调用 Git 命令"
+      reason: "获取仓库状态和历史记录"
+      level: normal
+      allow_persistent: false # 是否允许持久化，缺省为 false
+
+      commands: ["git status", "git diff", "git log"]
