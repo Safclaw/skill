@@ -72,3 +72,13 @@ hooks:
         platforms: ["windows"] # OS platforms
         args: ["./scripts/setup.ps1"]
         working_dir: "./"
+
+# skill reps
+---
+skills:
+  - name: "Commit Helper"
+    dir: "github.com/commit-helper/commit-helper"
+    version: v1.0.1
+    sig: "SHA256签名"
+
+

@@ -1,46 +1,147 @@
 # skill
-Define skill, and manage skill
 
+A Go Module-inspired decentralized skill management tool for SafeClaw.
+
+## Features
+
+- **Decentralized Management**: Download skills from any Git repository (GitHub, GitLab, Gitee, etc.)
+- **Go Module Style**: Uses `{host}/{namespace}/{name}@{version}` format
+- **Three Installation Modes**: Global, workspace, or custom directory
+- **Hook System**: Secure lifecycle hooks with checksum verification
+- **Skill Manifest**: `.skills.yaml` tracks installed skills with signatures
 
 ## Commands
 
 ### 1. Install skill
 ```bash
 # Install to workspace
-skill add github.com/Safclaw/skills/read-json
+skill add github.com/Safclaw/skills/read-json -w
 
 # Install globally
 skill add -g github.com/Safclaw/skills/read-json
 
 # Install to specified directory
-skill add github.com/Safclaw/skills/read-json --workspace ~/.opencalw/workspace
+skill add github.com/Safclaw/skills/read-json --workspace-path ~/.opencalw/workspace
 ```
 
 ### 2. Uninstall skill
 ```bash
 # Uninstall from workspace
-skill remove github.com/Safclaw/skills/read-json
+skill remove github.com/Safclaw/skills/read-json -w
 
 # Uninstall global installation
 skill remove -g github.com/Safclaw/skills/read-json
 
 # Uninstall from specified directory
-skill remove github.com/Safclaw/skills/read-json --workspace ~/.opencalw/workspace
+skill remove github.com/Safclaw/skills/read-json --workspace-path ~/.opencalw/workspace
 ```
 
 ### 3. Initialize a directory as a skill
 ```bash
-
 # skill init {skillName} [--template github.com/Safclaw/skill/empty]
 skill init github.com/xxx/xxSkill
 ```
+
 After initialization, the directory structure is as follows:
 ```bash
 ├── scripts
 │   ├── setup.sh # Script executed after installation
-│   ├── setup.sp1 # Script executed after installation (Windows)
+│   ├── setup.ps1 # Script executed after installation (Windows)
 │   ├── unsetup.sh # Script executed before uninstallation
-│   └── unsetup.sp1 # Script executed before uninstallation (Windows)
+│   └── unsetup.ps1 # Script executed before uninstallation (Windows)
 ├── skill.md # Skill entry file
 └── skill.yaml # Skill metadata
 ```
+
+### 4. List installed skills
+```bash
+# List global skills
+skill list -g
+
+# List workspace skills
+skill list -w
+
+# List skills in specified directory
+skill list --workspace-path /path/to/dir
+```
+
+### 5. Show skill information
+```bash
+skill info github.com/Safclaw/skills/read-json
+```
+
+### 6. Manage cache
+```bash
+# Clean cache
+skill cache clean
+
+# Clean all cache
+skill cache clean --all
+
+# Verify cache integrity
+skill cache verify
+```
+
+## Installation Directory Structure
+
+```
+{install_dir}/
+├── .skills.yaml          # Skill manifest
+└── reps/                 # Skill storage
+    └── github.com/       # Organized by host
+        └── Safclaw/      # Organized by namespace
+            └── skills/   # Organized by type
+                ├── json/
+                │   ├── skill.yaml
+                │   ├── skill.md
+                │   └── scripts/
+                └── xlsx/
+                    └── ...
+```
+
+## .skills.yaml Format
+
+```yaml
+# skill reps
+---
+skills:
+  - name: "Commit Helper"
+    dir: "github.com/commit-helper/commit-helper"
+    version: v1.0.1
+    sig: "sha256:abc123def456..."
+```
+
+## Environment Variables
+
+```bash
+# Configure skill proxy (optional)
+SKILLPROXY="https://skills.safeclaw.io,direct"
+
+# Private repositories
+SKILLPRIVATE="github.com/myorg/*,gitlab.com/internal/*"
+
+# Disable proxy for specific hosts
+SKILLNOPROXY="gitee.com,*.corp.example.com"
+
+# Custom directories
+SKILL_GLOBAL_DIR="$HOME/.safclaw/skills"
+SKILL_WORKSPACE_DIR="$HOME/.safclaw/workspace"
+SKILL_CACHE="$HOME/.safeclaw/skill/cache"
+```
+
+## Build
+
+```bash
+go build -o skill ./cmd/skill
+```
+
+## Current Status
+
+✅ Core downloader (GitHub support)
+✅ Hook engine with security validation
+✅ Installation management
+✅ CLI commands (add, remove, list, info, cache, init)
+⏳ Full download/install implementation (pending)
+⏳ GitLab/Gitee downloaders (pending)
+⏳ Proxy support (pending)
+⏳ Signature verification (pending)
