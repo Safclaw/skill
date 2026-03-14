@@ -43,7 +43,7 @@ func (i *Installer) Install(opts InstallOptions) (*InstallResult, error) {
 	targetPath := filepath.Join(opts.InstallDir, "reps", opts.ModuleDir)
 
 	// 2. 确保目标目录存在
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+	if err := os.MkdirAll(targetPath, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 

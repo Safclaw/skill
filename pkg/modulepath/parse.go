@@ -16,6 +16,7 @@ type ParsedPath struct {
 	Namespace string // Safclaw/skills
 	Name      string // read-json
 	Version   string // v1.0.0, latest, main
+	SubDir    string // subdirectory within the repo (e.g., "empty" in Safclaw/skill/empty)
 	Raw       string // 原始输入
 }
 
@@ -45,8 +46,30 @@ func Parse(path string) (*ParsedPath, error) {
 	}
 
 	host := parts[0]
-	name := parts[len(parts)-1]
-	namespace := strings.Join(parts[1:len(parts)-1], "/")
+
+	// Check for subdirectory (e.g., github.com/Safclaw/skill/empty -> namespace=Safclaw/skill, name=empty)
+	// But if there are more than 3 parts after host, treat the extra as subdirectory
+	var subDir string
+	var namespace, name string
+
+	if len(parts) > 4 {
+		// More than 4 parts: github.com/org/repo/subdir1/subdir2
+		// namespace = org, name = repo, subDir = subdir1/subdir2
+		namespace = parts[1]
+		name = parts[2]
+		subDir = strings.Join(parts[3:], "/")
+	} else if len(parts) == 4 {
+		// Exactly 4 parts: github.com/org/repo/subdir
+		// namespace = org, name = repo, subDir = subdir
+		namespace = parts[1]
+		name = parts[2]
+		subDir = parts[3]
+	} else {
+		// Exactly 3 parts: github.com/org/repo
+		// namespace = org, name = repo
+		namespace = strings.Join(parts[1:len(parts)-1], "/")
+		name = parts[len(parts)-1]
+	}
 
 	// 验证 host 格式
 	if !isValidHost(host) {
@@ -73,6 +96,7 @@ func Parse(path string) (*ParsedPath, error) {
 		Namespace: namespace,
 		Name:      name,
 		Version:   version,
+		SubDir:    subDir,
 		Raw:       path,
 	}, nil
 }
@@ -84,6 +108,9 @@ func (p *ParsedPath) String() string {
 
 // DirPath 返回目录路径（不带版本）
 func (p *ParsedPath) DirPath() string {
+	if p.SubDir != "" {
+		return filepath.Join(p.Host, p.Namespace, p.Name, p.SubDir)
+	}
 	return filepath.Join(p.Host, p.Namespace, p.Name)
 }
 

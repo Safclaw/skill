@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,6 +29,16 @@ func NewGitHubDownloader() *GitHubDownloader {
 func (d *GitHubDownloader) Download(ctx context.Context, host, namespace, name, version string) (*DownloadResult, error) {
 	if host != "github.com" {
 		return nil, fmt.Errorf("not a github host: %s", host)
+	}
+
+	// Resolve "latest" to actual latest version
+	if version == "latest" {
+		resolvedVersion, err := d.resolveLatestVersion(ctx, namespace, name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve latest version: %w", err)
+		}
+		version = resolvedVersion
+		fmt.Printf("Resolved 'latest' to version: %s\n", version)
 	}
 
 	// 构建下载 URL
@@ -78,6 +89,50 @@ func (d *GitHubDownloader) Download(ctx context.Context, host, namespace, name, 
 	}, nil
 }
 
+// resolveLatestVersion 解析最新版本号
+func (d *GitHubDownloader) resolveLatestVersion(ctx context.Context, namespace, name string) (string, error) {
+	// 使用 GitHub API 获取最新 release
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", namespace, name)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := d.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		// 成功获取到 release，解析 JSON
+		var release struct {
+			TagName string `json:"tag_name"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+			return "", fmt.Errorf("failed to decode release response: %w", err)
+		}
+		if release.TagName != "" {
+			return release.TagName, nil
+		}
+	}
+
+	// 如果没有 release，尝试获取 tags
+	tags, err := d.ListVersions(ctx, "github.com", namespace, name)
+	if err != nil {
+		// 如果 API 调用失败，默认使用 "main" 分支
+		return "main", nil
+	}
+
+	if len(tags) > 0 && tags[0] != "latest" {
+		return tags[0], nil
+	}
+
+	// 默认使用 main 分支
+	return "main", nil
+}
+
 // ListVersions 列出 GitHub 仓库的可用版本（通过 tags）
 func (d *GitHubDownloader) ListVersions(ctx context.Context, host, namespace, name string) ([]string, error) {
 	if host != "github.com" {
@@ -102,9 +157,20 @@ func (d *GitHubDownloader) ListVersions(ctx context.Context, host, namespace, na
 		return nil, fmt.Errorf("failed to list versions: %d", resp.StatusCode)
 	}
 
-	// TODO: 解析 JSON 响应
-	// 这里简化处理，实际需要使用 encoding/json 解析
-	return []string{"latest"}, nil
+	// 解析 JSON 响应
+	var tags []struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
+		return nil, fmt.Errorf("failed to decode tags response: %w", err)
+	}
+
+	versions := make([]string, len(tags))
+	for i, tag := range tags {
+		versions[i] = tag.Name
+	}
+
+	return versions, nil
 }
 
 // ExtractZip 解压 zip 文件到目标目录

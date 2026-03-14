@@ -3,8 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/Safclaw/skill/pkg/cache"
 	"github.com/Safclaw/skill/pkg/config"
+	"github.com/Safclaw/skill/pkg/downloader"
+	"github.com/Safclaw/skill/pkg/installer"
 	"github.com/Safclaw/skill/pkg/modulepath"
 	"github.com/spf13/cobra"
 )
@@ -59,21 +63,86 @@ func runAdd(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Installing %s to %s...\n", modPath.String(), installDir)
 
-	// TODO: 实现完整的下载和安装逻辑
 	// 3. 检查缓存
-	// 4. 下载（如果缓存未命中）
-	// 5. 安装
-	// 6. 执行 hooks
+	cacheManager := cache.NewManager(cfg.CacheDir)
+	cacheInfo, err := cacheManager.Get(modPath.Host, modPath.Namespace, modPath.Name, modPath.Version)
+	if err != nil {
+		return fmt.Errorf("cache check failed: %w", err)
+	}
 
-	fmt.Println("Note: Full implementation pending")
-	fmt.Printf("Module: %s\n", modPath.String())
-	fmt.Printf("Host: %s\n", modPath.Host)
-	fmt.Printf("Namespace: %s\n", modPath.Namespace)
-	fmt.Printf("Name: %s\n", modPath.Name)
-	fmt.Printf("Version: %s\n", modPath.Version)
-	fmt.Printf("Install Dir: %s\n", installDir)
+	var skillPath string
+	var checksum string
+	var extractedPath string // Path after extracting subdirectory
 
+	if cacheInfo != nil {
+		// 缓存命中
+		fmt.Println("Using cached version...")
+		skillPath = cacheInfo.Path
+		checksum = cacheInfo.Checksum
+		extractedPath = skillPath
+	} else {
+		// 缓存未命中，需要下载
+		fmt.Println("Downloading...")
+		downloader := downloader.NewGitHubDownloader()
+		downloadResult, err := downloader.Download(cmd.Context(), modPath.Host, modPath.Namespace, modPath.Name, modPath.Version)
+		if err != nil {
+			return fmt.Errorf("download failed: %w", err)
+		}
+		defer os.Remove(downloadResult.Path) // 清理临时 zip 文件
+
+		// 保存到缓存
+		skillPath, err = cacheManager.Put(modPath.Host, modPath.Namespace, modPath.Name, modPath.Version, downloadResult.Path, downloadResult.Checksum)
+		if err != nil {
+			return fmt.Errorf("failed to save to cache: %w", err)
+		}
+		checksum = downloadResult.Checksum
+		extractedPath = skillPath
+
+		fmt.Printf("Downloaded version: %s (size: %d bytes, checksum: %s)\n",
+			downloadResult.Version, downloadResult.Size, downloadResult.Checksum[:16]+"...")
+	}
+
+	// Handle subdirectory extraction
+	if modPath.SubDir != "" {
+		fmt.Printf("Extracting subdirectory: %s\n", modPath.SubDir)
+		extractedPath, err = extractorSubdirectory(extractedPath, modPath.SubDir)
+		if err != nil {
+			return fmt.Errorf("failed to extract subdirectory: %w", err)
+		}
+	}
+
+	// 4. 安装 skill
+	inst := installer.NewInstaller()
+	result, err := inst.Install(installer.InstallOptions{
+		InstallDir: installDir,
+		SkillPath:  extractedPath,
+		ModuleDir:  modPath.DirPath(),
+		Version:    modPath.Version,
+		Signature:  checksum,
+		RunHooks:   !noHooksFlag,
+	})
+	if err != nil {
+		return fmt.Errorf("installation failed: %w", err)
+	}
+
+	fmt.Printf("✓ %s\n", result.Message)
 	return nil
+}
+
+// extractorSubdirectory extracts a subdirectory from the downloaded content
+func extractorSubdirectory(basePath, subDir string) (string, error) {
+	subDirPath := filepath.Join(basePath, subDir)
+
+	// Check if subdirectory exists
+	info, err := os.Stat(subDirPath)
+	if err != nil {
+		return "", fmt.Errorf("subdirectory not found: %s", subDir)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("%s is not a directory", subDir)
+	}
+
+	return subDirPath, nil
 }
 
 // getInstallDir 根据标志确定安装目录
