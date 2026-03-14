@@ -7,23 +7,36 @@ A Go Module-inspired decentralized skill management tool for SafeClaw.
 
 **Mac & Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Safclaw/skill/main/scripts/install.sh | bash
+# Non-root installation (installs to ~/.local/bin)
+curl -fsSL https://raw.githubusercontent.com/safeclaw/skill/main/scripts/install.sh | bash
+
+# System-wide installation (requires sudo)
+curl -fsSL https://raw.githubusercontent.com/safeclaw/skill/main/scripts/install.sh | sudo bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Safclaw/skill/main/scripts/install.ps1 | Invoke-Expression
+Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/safeclaw/skill/main/scripts/install.ps1 | Invoke-Expression
 ```
 
-### Manual Installation
+<details>
+<summary><strong>Manual Installation</strong></summary>
 
 #### Mac
 ```bash
 # Option 1: Using Homebrew (if available)
 brew install skill
 
-# Option 2: Manual download
-curl -LO https://github.com/Safclaw/skill/releases/latest/download/skill_darwin_amd64
+# Option 2: Manual download (non-root)
+curl -LO https://github.com/safeclaw/skill/releases/latest/download/skill_darwin_amd64
+chmod +x skill_darwin_amd64
+mkdir -p $HOME/.local/bin
+mv skill_darwin_amd64 $HOME/.local/bin/skill
+export PATH="$HOME/.local/bin:$PATH"
+skill --version
+
+# Option 3: Manual download (system-wide, requires sudo)
+curl -LO https://github.com/safeclaw/skill/releases/latest/download/skill_darwin_amd64
 chmod +x skill_darwin_amd64
 sudo mv skill_darwin_amd64 /usr/local/bin/skill
 skill --version
@@ -31,8 +44,16 @@ skill --version
 
 #### Linux
 ```bash
-# Download binary
-curl -LO https://github.com/Safclaw/skill/releases/latest/download/skill_linux_amd64
+# Download binary (non-root)
+curl -LO https://github.com/safeclaw/skill/releases/latest/download/skill_linux_amd64
+chmod +x skill_linux_amd64
+mkdir -p $HOME/.local/bin
+mv skill_linux_amd64 $HOME/.local/bin/skill
+export PATH="$HOME/.local/bin:$PATH"
+skill --version
+
+# Or system-wide (requires sudo)
+curl -LO https://github.com/safeclaw/skill/releases/latest/download/skill_linux_amd64
 chmod +x skill_linux_amd64
 sudo mv skill_linux_amd64 /usr/local/bin/skill
 skill --version
@@ -41,13 +62,15 @@ skill --version
 #### Windows
 ```powershell
 # Download using PowerShell
-Invoke-WebRequest -Uri "https://github.com/Safclaw/skill/releases/latest/download/skill_windows_amd64.exe" -OutFile "$env:USERPROFILE\skill.exe"
+Invoke-WebRequest -Uri "https://github.com/safeclaw/skill/releases/latest/download/skill_windows_amd64.exe" -OutFile "$env:USERPROFILE\skill.exe"
 # Add to PATH manually or move to existing PATH directory
 ```
 
+</details>
+
 ### Build from Source
 ```bash
-git clone https://github.com/Safclaw/skill.git
+git clone https://github.com/safeclaw/skill.git
 cd skill
 go build -o skill ./cmd/skill
 sudo mv skill /usr/local/bin/
@@ -66,30 +89,30 @@ sudo mv skill /usr/local/bin/
 ### 1. Install skill
 ```bash
 # Install to workspace
-skill add github.com/Safclaw/skills/read-json -w
+skill add github.com/safeclaw/skills/read-json -w
 
 # Install globally
-skill add -g github.com/Safclaw/skills/read-json
+skill add -g github.com/safeclaw/skills/read-json
 
 # Install to specified directory
-skill add github.com/Safclaw/skills/read-json --workspace-path ~/.opencalw/workspace
+skill add github.com/safeclaw/skills/read-json --workspace-path ~/.opencalw/workspace
 ```
 
 ### 2. Uninstall skill
 ```bash
 # Uninstall from workspace
-skill remove github.com/Safclaw/skills/read-json -w
+skill remove github.com/safeclaw/skills/read-json -w
 
 # Uninstall global installation
-skill remove -g github.com/Safclaw/skills/read-json
+skill remove -g github.com/safeclaw/skills/read-json
 
 # Uninstall from specified directory
-skill remove github.com/Safclaw/skills/read-json --workspace-path ~/.opencalw/workspace
+skill remove github.com/safeclaw/skills/read-json --workspace-path ~/.opencalw/workspace
 ```
 
 ### 3. Initialize a directory as a skill
 ```bash
-# skill init {skillName} [--template github.com/Safclaw/skill/empty]
+# skill init {skillName} [--template github.com/safeclaw/skill/empty]
 skill init github.com/xxx/xxSkill
 ```
 
@@ -118,7 +141,7 @@ skill list --workspace-path /path/to/dir
 
 ### 5. Show skill information
 ```bash
-skill info github.com/Safclaw/skills/read-json
+skill info github.com/safeclaw/skills/read-json
 ```
 
 ### 6. Manage cache

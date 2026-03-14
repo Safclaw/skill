@@ -50,7 +50,7 @@ if (-not (Test-Path $InstallDir)) {
 }
 
 # Build download URL
-$Repo = "Safclaw/skill"
+$Repo = "safeclaw/skill"
 $BinaryName = "skill_windows_${Arch}.exe"
 $DownloadUrl = "https://github.com/${Repo}/releases/latest/download/${BinaryName}"
 

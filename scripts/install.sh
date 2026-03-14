@@ -11,9 +11,10 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="Safclaw/skill"
+REPO="safeclaw/skill"
 INSTALL_DIR="/usr/local/bin"
 SKILL_BIN="skill"
+USER_INSTALL_DIR="$HOME/.local/bin"
 
 # Helper functions
 log_info() {
@@ -65,10 +66,29 @@ check_prerequisites() {
         log_error "curl is required but not installed."
         exit 1
     fi
-    
-    if [ "$(id -u)" -ne 0 ]; then
-        log_error "This script must be run as root (use sudo)"
-        exit 1
+}
+
+# Detect if running as root
+is_root() {
+    [ "$(id -u)" -eq 0 ]
+}
+
+# Choose install directory based on permissions
+choose_install_dir() {
+    if is_root || [ -w "$INSTALL_DIR" ]; then
+        echo "$INSTALL_DIR"
+    else
+        # Check if user has write permission to INSTALL_DIR
+        if [ ! -d "$INSTALL_DIR" ]; then
+            # Try to create with sudo
+            log_warn "Cannot write to $INSTALL_DIR, will use $USER_INSTALL_DIR"
+            echo "$USER_INSTALL_DIR"
+        elif [ -w "$INSTALL_DIR" ]; then
+            echo "$INSTALL_DIR"
+        else
+            log_warn "Cannot write to $INSTALL_DIR, will use $USER_INSTALL_DIR"
+            echo "$USER_INSTALL_DIR"
+        fi
     fi
 }
 
@@ -77,6 +97,7 @@ install_skill() {
     local os="$1"
     local arch="$2"
     local version="$3"
+    local target_dir="$4"
     
     local binary_name="skill_${os}_${arch}"
     local download_url="https://github.com/${REPO}/releases/latest/download/${binary_name}"
@@ -100,26 +121,51 @@ install_skill() {
     # Make executable
     chmod +x "${tmp_dir}/${SKILL_BIN}"
     
+    # Create target directory if needed
+    if [ ! -d "$target_dir" ]; then
+        mkdir -p "$target_dir"
+    fi
+    
     # Install to target directory
-    if ! mv "${tmp_dir}/${SKILL_BIN}" "${INSTALL_DIR}/${SKILL_BIN}"; then
-        log_error "Failed to install to ${INSTALL_DIR}"
+    if ! mv "${tmp_dir}/${SKILL_BIN}" "${target_dir}/${SKILL_BIN}"; then
+        # If failed and trying system dir, try with sudo
+        if [ "$target_dir" = "$INSTALL_DIR" ]; then
+            log_info "Attempting installation with sudo..."
+            if sudo mv "${tmp_dir}/${SKILL_BIN}" "${INSTALL_DIR}/${SKILL_BIN}"; then
+                log_info "Successfully installed ${SKILL_BIN} to ${INSTALL_DIR}"
+                return 0
+            fi
+        fi
+        log_error "Failed to install to ${target_dir}"
         exit 1
     fi
     
-    log_info "Successfully installed ${SKILL_BIN} to ${INSTALL_DIR}"
+    log_info "Successfully installed ${SKILL_BIN} to ${target_dir}"
 }
 
 # Verify installation
 verify_installation() {
+    # Refresh PATH if using user directory
+    if [[ "$PATH" != *"$USER_INSTALL_DIR"* ]]; then
+        export PATH="$USER_INSTALL_DIR:$PATH"
+    fi
+    
     if command -v ${SKILL_BIN} &> /dev/null; then
         local version=$(${SKILL_BIN} --version 2>&1 || echo "unknown")
         log_info "Installation verified! ${SKILL_BIN} ${version}"
         echo ""
         echo "You can now use:"
-        echo "  ${SKILL_BIN} add github.com/Safclaw/skills/read-json"
+        echo "  ${SKILL_BIN} add github.com/safeclaw/skills/read-json"
         echo "  ${SKILL_BIN} --help"
     else
         log_error "Installation verification failed"
+        if [ -f "$USER_INSTALL_DIR/${SKILL_BIN}" ]; then
+            echo ""
+            log_warn "${SKILL_BIN} is installed but not in PATH"
+            echo "Add this to your ~/.bashrc or ~/.zshrc:"
+            echo "  export PATH=\$HOME/.local/bin:\$PATH"
+            echo "Or run: ${USER_INSTALL_DIR}/${SKILL_BIN} --help"
+        fi
         exit 1
     fi
 }
@@ -137,7 +183,15 @@ main() {
     
     log_info "Detected: ${os}/${arch}"
     
-    install_skill "${os}" "${arch}"
+    # Determine install directory
+    local install_dir=$(choose_install_dir)
+    if [ "$install_dir" = "$USER_INSTALL_DIR" ]; then
+        log_info "Installing to user directory: ${install_dir}"
+    else
+        log_info "Installing to system directory: ${install_dir}"
+    fi
+    
+    install_skill "${os}" "${arch}" "${VERSION:-}" "${install_dir}"
     verify_installation
     
     log_info "Installation complete!"
