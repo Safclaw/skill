@@ -1,11 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"path/filepath"
-	"text/template"
 
+	"github.com/Safclaw/skill/pkg/config"
+	"github.com/Safclaw/skill/pkg/template"
 	"github.com/spf13/cobra"
 )
 
@@ -21,12 +22,13 @@ func initInitCmd() *cobra.Command {
 
 Examples:
   skill init github.com/myorg/my-skill
-  skill init github.com/myorg/my-skill --template github.com/Safclaw/skill/empty`,
+  skill init github.com/myorg/my-skill --template github.com/Safclaw/skill/empty
+  skill init github.com/myorg/my-skill --template ./my-template`,
 		Args: cobra.ExactArgs(1),
 		RunE: runInit,
 	}
 
-	cmd.Flags().StringVar(&templateFlag, "template", "", "Template to use")
+	cmd.Flags().StringVar(&templateFlag, "template", "", "Template to use (local path or remote repository)")
 
 	return cmd
 }
@@ -34,55 +36,30 @@ Examples:
 func runInit(cmd *cobra.Command, args []string) error {
 	moduleName := args[0]
 
-	// 创建目录
-	if err := os.MkdirAll(moduleName, 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
+	// 获取当前工作目录
+	workDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	// 创建基础文件结构
-	files := map[string]string{
-		"skill.yaml":         skillYamlTemplate,
-		"skill.md":           skillMdTemplate,
-		"README.md":          readmeTemplate,
-		"scripts/setup.sh":   setupShTemplate,
-		"scripts/unsetup.sh": unsetupShTemplate,
+	// 确定模板路径
+	tmplPath := templateFlag
+	if tmplPath == "" {
+		// 使用默认模板
+		tmplPath = template.GetDefaultTemplate()
 	}
 
-	for file, content := range files {
-		filePath := filepath.Join(moduleName, file)
+	// 创建模板管理器
+	cfg := config.DefaultConfig()
+	tmplManager := template.NewTemplateManager(cfg.CacheDir)
 
-		// 确保目录存在
-		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-			return err
-		}
-
-		// 创建文件
-		f, err := os.Create(filePath)
-		if err != nil {
-			return err
-		}
-
-		// 渲染模板
-		tmpl, err := template.New(file).Parse(content)
-		if err != nil {
-			f.Close()
-			return err
-		}
-
-		data := map[string]interface{}{
-			"ModuleName": moduleName,
-		}
-
-		if err := tmpl.Execute(f, data); err != nil {
-			f.Close()
-			return err
-		}
-
-		f.Close()
-		fmt.Printf("Created: %s\n", filePath)
+	// 从模板复制文件
+	ctx := context.Background()
+	if err := tmplManager.CopyTemplate(ctx, tmplPath, workDir, moduleName); err != nil {
+		return fmt.Errorf("failed to copy template: %w", err)
 	}
 
-	fmt.Printf("\nSuccessfully initialized skill in %s/\n", moduleName)
+	fmt.Printf("\nSuccessfully initialized skill in current directory\n")
 	fmt.Println("\nNext steps:")
 	fmt.Println("  1. Edit skill.yaml with your skill metadata")
 	fmt.Println("  2. Implement your skill in skill.md")
@@ -93,99 +70,3 @@ func runInit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-const skillYamlTemplate = `# ==============================
-# Skill Metadata
-# ==============================
-name: {{.ModuleName}}
-description: "A new skill"
-# entrypoint: "skill.md"
-
-# Authors
-authors:
-  - name: "Your Name"
-    email: "your.email@example.com"
-
-license: "MIT"
-tags: []
-
-# Dependencies
-# dependencies:
-#   - name: github.com/Safclaw/skills/xlsx
-#     version: v1.0.0
-
-# Permissions (for reference only, enforced by runtime)
-# permissions:
-#   storage: []
-#   network: []
-#   execution: []
-
-# Hooks
-# hooks:
-#   - stage: "post_add"
-#     reason: "Setup script"
-#     timeout: 30
-#     scripts:
-#       - command: "bash"
-#         platforms: ["linux", "darwin"]
-#         args: ["./scripts/setup.sh"]
-`
-
-const skillMdTemplate = `# {{.ModuleName}}
-
-## Usage
-
-Describe how to use this skill here.
-
-## Implementation
-
-Implement your skill logic here.
-`
-
-const readmeTemplate = `# {{.ModuleName}}
-
-A new skill for SafeClaw.
-
-## Installation
-
-` + "```bash" + `
-skill add {{.ModuleName}}@latest
-` + "```" + `
-
-## Usage
-
-TODO: Add usage instructions
-
-## Development
-
-` + "```bash" + `
-# Initialize the skill
-skill init {{.ModuleName}}
-
-# Test locally
-# TODO: Add testing instructions
-` + "```" + `
-
-## License
-
-MIT
-`
-
-const setupShTemplate = `#!/bin/bash
-set -e
-
-echo "Setting up {{.ModuleName}}..."
-
-# Add your setup logic here
-
-echo "Setup complete!"
-`
-
-const unsetupShTemplate = `#!/bin/bash
-set -e
-
-echo "Cleaning up {{.ModuleName}}..."
-
-# Add your cleanup logic here
-
-echo "Cleanup complete!"
-`

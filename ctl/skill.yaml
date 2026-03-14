@@ -1,0 +1,34 @@
+name: github.com/Safclaw/skill/ctl
+description: "Safclaw skill control tool"
+# entrypoint: "skill.md"
+
+# Authors
+authors:
+  - name: "Degfy"
+    email: "degfy@hotmail.com"
+
+license: "MIT"
+tags:
+  - "Safclaw skill"
+  - "Root Skill"
+
+# Dependencies
+# dependencies:
+#   - name: github.com/Safclaw/skills/xlsx
+#     version: v1.0.0
+
+# Permissions (for reference only, enforced by runtime)
+# permissions:
+#   storage: []
+#   network: []
+#   execution: []
+
+# Hooks
+# hooks:
+#   - stage: "post_add"
+#     reason: "Setup script"
+#     timeout: 30
+#     scripts:
+#       - command: "bash"
+#         platforms: ["linux", "darwin"]
+#         args: ["./scripts/setup.sh"]
