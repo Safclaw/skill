@@ -1,0 +1,95 @@
+# ==============================
+# Level 1: Core Identifiers (Required)
+# ==============================
+name: github.com/Safclaw/skill/empty
+description: "An empty skill template" # Optional
+# entrypoint: "skill.md" # Optional, defaults to skill.md
+
+# ==============================
+# Level 2: Metadata (Recommended)
+# ==============================
+# Authors information for the skill
+authors:
+  - name: "Your Name"
+    email: "" # Author email address, optional
+    homepage: "" # Author personal or organization homepage, optional
+license: "MIT" # License type (e.g., MIT, Apache-2.0, GPL-3.0)
+repository: "" # Source code repository URL, optional
+homepage: "" # Skill homepage URL, optional
+tags: [] # List of tags for categorization, e.g., ["git", "productivity", "devops"]
+#
+# Example Metadata:
+# authors:
+#   - name: "John Doe"
+#     email: "john@example.com"
+#     homepage: "https://johndoe.dev"
+#   - name: "Jane Smith"
+#     email: "jane@example.com"
+#     homepage: "https://janesmith.io"
+# license: "Apache-2.0"
+# repository: "https://github.com/example/my-skill"
+# homepage: "https://my-skill.example.com"
+# tags: ["automation", "productivity", "workflow"]
+
+# ==============================
+# Level 3: Dependencies (Optional)
+# ==============================
+# dependencies:
+#   - name: github.com/Safclaw/skills/xlsx
+#     version: v1.0.0
+
+# ==============================
+# Level 4: Permissions (Core Security)
+# ==============================
+permissions:
+  # Storage permissions
+  storage: []
+  # Example storage permission:
+  # storage:
+  #   - label: "Read project code and Git status" # Storage permission label
+  #     reason: "Analyze source code and git diff to generate accurate commit messages"
+  #     level: normal # normal | dangerous | critical
+  #     allow_persistent: false # Whether to allow persistence, defaults to false
+  #
+  #     paths: ["src", ".git"] # Relative paths or absolute paths
+  #     rel: workspace # system | home | workspace
+  #     mod: ["read"] # read | write
+
+  # Network permissions
+  network: []
+  # Example network permission:
+  # network:
+  #   - label: "Query GitHub Issues"
+  #     reason: "Associate related issues in commit messages"
+  #     level: normal
+  #     allow_persistent: false # Whether to allow persistence, defaults to false
+  #
+  #     domains: ["api.github.com"]
+
+  # Execution permissions
+  execution: []
+  # Example execution permission:
+  # execution:
+  #   - label: "Call Git commands"
+  #     reason: "Get repository status and history"
+  #     level: normal
+  #     allow_persistent: false # Whether to allow persistence, defaults to false
+  #
+  #     commands: ["git status", "git diff", "git log"]
+
+# Hooks for lifecycle events
+hooks: []
+# Example hook:
+# hooks:
+#   - stage: "post_add" # post_add | pre_remove
+#     reason: "Install gitlint tool and initialize commit template" # Optional
+#     timeout: 120 # Optional, defaults to 30 seconds
+#     scripts:
+#       - command: "bash"
+#         platforms: ["linux", "darwin"] # OS platforms
+#         args: ["./scripts/setup.sh"]
+#         working_dir: "./"
+#       - command: "powershell"
+#         platforms: ["windows"] # OS platforms
+#         args: ["./scripts/setup.ps1"]
+#         working_dir: "./"
